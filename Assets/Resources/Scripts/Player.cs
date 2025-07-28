@@ -8,14 +8,14 @@ namespace UnoGame
 {
     public class Player : MonoBehaviour
     {
-        public float cardScale = 1f;   // 卡片缩放比例
-    
-        private int id;
-        private string playerName;
-        public List<GameObject> cards;
-        private GameObject baseMent;
-        private int sel;
-        private bool isUpDown;
+   
+        public int id;
+        public string playerName;
+        public List<GameObject> cards = new List<GameObject>();
+        public GameObject baseMent;
+        private int sel = -1;
+        public bool isUpDown;
+        public bool isAi;
 
         public int ID
         {
@@ -24,16 +24,6 @@ namespace UnoGame
         public string PlayerName
         {
             get { return playerName; }
-        }
-
-        public Player(int id, string name, bool upDown, GameObject region)
-        {
-            this.id = id;
-            playerName = name;
-            isUpDown = upDown;
-            baseMent = region;
-            sel = -1;
-            cards = new List<GameObject>();
         }
 
         public void AddCard(int tid)
@@ -49,12 +39,19 @@ namespace UnoGame
             {
                 // 设置Chess组件的属性
                 chess.id = tid;
-                chess.chessName = CardBook.GetCard(tid).icon.ToString();
+                if(isAi)
+                    chess.chessName = "0"; // ai牌不显示
+                else
+                    chess.chessName = CardBook.GetCard(tid).icon.ToString();
             }
 
             //保存到一个队列里
             cards.Add(chessObj);
 
+            if (!isUpDown)
+                chessObj.transform.Rotate(0, 90, 0);
+
+            var cardScale = 1f;
             //将所有cards物件，水平平放在baseMent上，一排放置
             for (int i = 0; i < cards.Count; i++)
             {
@@ -74,16 +71,18 @@ namespace UnoGame
                 else
                 {
                     // X轴排列
-                    float baseMentWidth = baseMent.transform.localScale.x;
+                    float baseMentWidth = baseMent.transform.localScale.z;
                     float totalCardWidth = cards.Count * chessWidth * cardScale;
                     float startX = -baseMentWidth / 2 + chessWidth * cardScale / 2;
                     float spacing = cards.Count > 1 ? (baseMentWidth - totalCardWidth) / (cards.Count - 1) : 0;
                     cardPosition = new Vector3(startX + i * (chessWidth * cardScale + spacing), 0, 0);
+
+                    
                 }
                 // 添加baseMent的世界坐标偏移
-                cardPosition += baseMent.transform.position;
+                cardPosition += baseMent.transform.position + new Vector3(0, i*0.1f, 0);
                 cards[i].transform.position = cardPosition;
-                
+
             }
         }
 

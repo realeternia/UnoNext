@@ -2,13 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.UI;
 using UnoGame;
 
 public class GameManager : MonoBehaviour
 {    
-    public GameObject[] chessRegions;
-    private List<int> cards;
-    private Player[] players;        
+    private List<int> deckCards;
+    public Player[] players;        
     private bool isStart;
     private int round;
     private List<int> lastCard;
@@ -17,15 +17,12 @@ public class GameManager : MonoBehaviour
     private int bonus;
     private bool onTurn;
 
+    public Button buttonAdd;
+
     // Start is called before the first frame update
     void Start()
     {
         InitCards();
-        players = new Player[4];
-        players[0] = new Player(0, "宝宝", true, chessRegions[0]);
-        players[1] = new Player(1, "张三疯", false, chessRegions[1]);
-        players[2] = new Player(2, "贝贝", true, chessRegions[2]);
-        players[3] = new Player(3, "雀儿", false, chessRegions[3]);
         for (int i = 0; i < 7; i++)
         {
             foreach (Player player in players)
@@ -42,6 +39,7 @@ public class GameManager : MonoBehaviour
         // button1.Hide();
         // buttonStart.Show();
 
+        buttonAdd.onClick.AddListener(OnButtonAddClicked);
         StartCoroutine(DelayedUpdate());
     }
 
@@ -65,18 +63,26 @@ public class GameManager : MonoBehaviour
 
     private void InitCards()
     {
-        cards = new List<int>();
+        deckCards = new List<int>();
         for (int i = 1; i < 53; i++)
         {
-            cards.Add(i);
-            cards.Add(i);
+            deckCards.Add(i);
+            deckCards.Add(i);
         }
         for (int i = 0; i < 4; i++)
         {
-            cards.Add(53);
-            cards.Add(54);
+            deckCards.Add(53);
+            deckCards.Add(54);
         }
-        cards = RandomShuffle.Process(cards.ToArray());
+        deckCards = RandomShuffle.Process(deckCards.ToArray());
+    }
+
+    private void OnButtonAddClicked()
+    {
+        foreach (Player player in players)
+        {
+            player.AddCard(GetCard());
+        }
     }
 
     private void doWork()
@@ -133,12 +139,12 @@ public class GameManager : MonoBehaviour
 
     private int GetCard()
     {
-        if (cards.Count==0)
+        if (deckCards.Count==0)
         {
             InitCards();
         }
-        int cid = cards[0];
-        cards.RemoveAt(0);
+        int cid = deckCards[0];
+        deckCards.RemoveAt(0);
         return cid;
     }
 

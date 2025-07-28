@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 679, y: 10, z: 340}
-  m_LocalScale: {x: 12, y: 2, z: 13}
+  m_LocalScale: {x: 10, y: 2, z: 13}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -123,5 +123,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9410a162972ac84438a90b19b59e8498, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  id: 0
   chessName: 9
   rend: {fileID: 1992214473931917932}

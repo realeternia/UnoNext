@@ -124,5 +124,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   id: 0
-  chessName: 9
+  chessName: 0
   rend: {fileID: 1992214473931917932}

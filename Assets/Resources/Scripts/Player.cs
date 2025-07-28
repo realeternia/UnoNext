@@ -8,12 +8,10 @@ namespace UnoGame
 {
     public class Player : MonoBehaviour
     {
-   
         public int id;
         public string playerName;
         public List<GameObject> cards = new List<GameObject>();
         public GameObject baseMent;
-        private int sel = -1;
         public bool isUpDown;
         public bool isAi;
 
@@ -39,6 +37,7 @@ namespace UnoGame
             {
                 // 设置Chess组件的属性
                 chess.id = tid;
+                chess.playerId = id;
                 if(isAi)
                     chess.chessName = "0"; // ai牌不显示
                 else
@@ -50,7 +49,23 @@ namespace UnoGame
 
             if (!isUpDown)
                 chessObj.transform.Rotate(0, 90, 0);
+            UpdateCards();
+        }
 
+        private void RemoveCard(int cardId)
+        {
+            var index = cards.FindIndex(x => x.GetComponent<Chess>().id == cardId);
+            if (index != -1)
+            {
+                Destroy(cards[index]);
+                cards.RemoveAt(index);
+            }
+            UpdateCards();
+        }
+
+        private void UpdateCards()
+        {
+            var chessWidth = 1;
             var cardScale = 1f;
             //将所有cards物件，水平平放在baseMent上，一排放置
             for (int i = 0; i < cards.Count; i++)
@@ -149,7 +164,7 @@ namespace UnoGame
                     {
                         rt = pickCard.id;
                         symbol = pickCard.symble;
-                        cards.RemoveAt(i);
+                        RemoveCard(pickCard.id);
                         break;
                     }
                 }
@@ -162,7 +177,7 @@ namespace UnoGame
                     if (pickCard.symble == symbol)
                     {
                         rt = pickCard.id;
-                        cards.RemoveAt(i);
+                        RemoveCard(pickCard.id);
                         break;
                     }
 
@@ -178,28 +193,22 @@ namespace UnoGame
                         symbol = pickCard.symble;
                     }
                     rt = pickCard.id;
-                    cards.RemoveAt(i);
+                    RemoveCard(pickCard.id);
                     break;
                 }
             }
             return rt;
         }
 
-        public int CheckSelectCard(int cid, ref int symbol)
+        public int CheckSelectCard(int cid, int selectCardId, ref int symbol)
         {
-            if (sel==-1)
-            {
-                return -1;
-            }
-
             Card cdd = CardBook.GetCard(cid);
-            Card cd = CardBook.GetCard(cards[sel].GetComponent<Chess>().id);
+            Card cd = CardBook.GetCard(selectCardId);
             if (cid == -1 || cards.Count == 1)
             {
                 if (cd.point <= 10 && (cid == -1 || cd.symble == cdd.symble))
                 {
-                    cards.RemoveAt(sel);
-                    sel = -1;
+                    RemoveCard(selectCardId);
                     symbol = cd.symble;
                     return cd.id;
                 }
@@ -212,8 +221,7 @@ namespace UnoGame
                 }
                 if (cd.symble == symbol)
                 {
-                    cards.RemoveAt(sel);
-                    sel = -1;
+                    RemoveCard(selectCardId);
                     return cd.id;
                 }
             }
@@ -229,12 +237,12 @@ namespace UnoGame
                 {
                     symbol = cd.symble;
                 }
-                cards.RemoveAt(sel);
-                sel = -1;
+               RemoveCard(selectCardId);
                 return cd.id;
             }
             return -1;
         }
+
 
     }
 }

@@ -1,17 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
 using UnityEngine;
 using UnityEngine.UI;
 using UnoGame;
 
 public class GameManager : MonoBehaviour
-{    
+{
+    public static GameManager Instance;
+
     private List<int> deckCards;
     public Player[] players;        
-    private bool isStart;
     private int round;
-    private List<int> lastCard;
+
+    public Chess[] cardPlayedPos;
     private int symbol;
     private bool reverse;
     private int bonus;
@@ -31,8 +32,6 @@ public class GameManager : MonoBehaviour
             }
         }
         round = 10000;
-        isStart = true;
-        lastCard = new List<int>();
         symbol = 0;
         onTurn = false;
         // buttonGet.Visible = true;
@@ -41,6 +40,8 @@ public class GameManager : MonoBehaviour
 
         buttonAdd.onClick.AddListener(OnButtonAddClicked);
         StartCoroutine(DelayedUpdate());
+
+        Instance = this;
     }
 
     // Update is called once per frame
@@ -100,13 +101,13 @@ public class GameManager : MonoBehaviour
         int id = (round%4);
         if (id != 0)
         {
-            int cid = players[id].CheckCard(lastCard.Count == 0 ? -1 : lastCard[lastCard.Count - 1], ref symbol, bonus > 0);
-            Card cd = CardBook.GetCard(cid);
+            int cid = players[id].CheckCard(cardPlayedPos[0].id, ref symbol, bonus > 0);
+            Card cardPlayed = CardBook.GetCard(cid);
             bool hasGetCard = false;
             if (bonus > 0)
             {
-                Card ccd = CardBook.GetCard(lastCard[lastCard.Count - 1]);
-                if (cd.point == ccd.point || (cd.point == 24 &&ccd.point==21))
+                Card ccd = CardBook.GetCard(cardPlayedPos[0].id);
+                if (cardPlayed.point == ccd.point || (cardPlayed.point == 24 &&ccd.point==21))
                 {
                 }
                 else
@@ -136,6 +137,41 @@ public class GameManager : MonoBehaviour
         onTurn = false;
     }
 
+    public void OnPlayerSelectCard(int checkId)
+    {
+        if ((round % 4) == 0)
+        {
+            onTurn = true;
+            int cid = players[0].CheckSelectCard(cardPlayedPos[0].id, checkId, ref symbol);
+            Card cd = CardBook.GetCard(cid);
+            if (cid>0&& bonus > 0)
+            {
+                Card ccd = CardBook.GetCard(cid);
+                if (cd.point == ccd.point || (cd.point == 24 && ccd.point == 21))
+                {
+                }
+                else
+                {
+                  //  AddLog(string.Format("{0}吞下{1}张牌", players[0].Name, bonus), "Yellow");
+                    for (int i = 0; i < bonus; i++)
+                    {
+                        players[0].AddCard(GetCard());
+                    }
+                    bonus = 0;
+                }
+            }
+
+            if (cid>0)
+            {
+                round = !reverse ? (round + 1) : (round - 1);
+                AddLastCard(round % 4, cid);
+             //   AddLog(string.Format("{0}出了{1}", players[0].Name, cd.name), cd.point <= 10 ? "White" : "Lime");
+              //  doubleBuffedPanel1.Invalidate();
+            }
+            onTurn = false;
+        }
+    }
+
 
     private int GetCard()
     {
@@ -150,11 +186,11 @@ public class GameManager : MonoBehaviour
 
     private void AddLastCard(int id, int cid)
     {
-        lastCard.Add(cid);
-        if (lastCard.Count>3)
-        {
-            lastCard.RemoveAt(0);
-        }
+        cardPlayedPos[3].UpdateVal(cardPlayedPos[2].id);
+        cardPlayedPos[2].UpdateVal(cardPlayedPos[1].id);
+        cardPlayedPos[1].UpdateVal(cardPlayedPos[0].id);
+        cardPlayedPos[0].UpdateVal(cid);
+
         Card cd = CardBook.GetCard(cid);
         if (cd.point == 22)
         {

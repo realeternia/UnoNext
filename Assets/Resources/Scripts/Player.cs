@@ -2,40 +2,89 @@
 using System.Collections.Generic;
 using System.Drawing;
 using UnoGame;
+using UnityEngine;
 
 namespace UnoGame
 {
-    class Player
+    public class Player : MonoBehaviour
     {
+        public float cardScale = 1f;   // 卡片缩放比例
+    
         private int id;
-        private string name;
-        public List<int> cards;
-        private int x;
-        private int y;
+        private string playerName;
+        public List<GameObject> cards;
+        private GameObject baseMent;
         private int sel;
+        private bool isUpDown;
 
         public int ID
         {
             get { return id; }
         }
-        public string Name
+        public string PlayerName
         {
-            get { return name; }
+            get { return playerName; }
         }
 
-        public Player(int id, string name, int x, int y)
+        public Player(int id, string name, bool upDown, GameObject region)
         {
             this.id = id;
-            this.name = name;
-            this.x = x;
-            this.y = y;
+            playerName = name;
+            isUpDown = upDown;
+            baseMent = region;
             sel = -1;
-            cards = new List<int>();
+            cards = new List<GameObject>();
         }
 
         public void AddCard(int tid)
         {
-            cards.Add(tid);
+            // 从Prefab创建一个ChessObj对象
+            GameObject chessObj = Instantiate(Resources.Load<GameObject>("Prefabs/ChessObj"));
+            float chessWidth = chessObj.GetComponent<Renderer>().bounds.size.x;
+            chessObj.transform.SetParent(baseMent.transform, false);
+
+            // 获取Chess组件
+            Chess chess = chessObj.GetComponent<Chess>();
+            if (chess != null)
+            {
+                // 设置Chess组件的属性
+                chess.id = tid;
+                chess.chessName = CardBook.GetCard(tid).icon.ToString();
+            }
+
+            //保存到一个队列里
+            cards.Add(chessObj);
+
+            //将所有cards物件，水平平放在baseMent上，一排放置
+            for (int i = 0; i < cards.Count; i++)
+            {
+                cards[i].transform.SetParent(GameObject.Find("Units").transform, false);
+                // 根据baseMent的宽度和缩放计算卡片坐标
+                // 根据isUpDown决定是沿X轴还是Z轴排列卡片
+                Vector3 cardPosition;
+                if (isUpDown)
+                {
+                    // Z轴排列
+                    float baseMentDepth = baseMent.transform.localScale.z;
+                    float totalCardDepth = cards.Count * chessWidth * cardScale;
+                    float startZ = -baseMentDepth / 2 + chessWidth * cardScale / 2;
+                    float spacing = cards.Count > 1 ? (baseMentDepth - totalCardDepth) / (cards.Count - 1) : 0;
+                    cardPosition = new Vector3(0, 0, startZ + i * (chessWidth * cardScale + spacing));
+                }
+                else
+                {
+                    // X轴排列
+                    float baseMentWidth = baseMent.transform.localScale.x;
+                    float totalCardWidth = cards.Count * chessWidth * cardScale;
+                    float startX = -baseMentWidth / 2 + chessWidth * cardScale / 2;
+                    float spacing = cards.Count > 1 ? (baseMentWidth - totalCardWidth) / (cards.Count - 1) : 0;
+                    cardPosition = new Vector3(startX + i * (chessWidth * cardScale + spacing), 0, 0);
+                }
+                // 添加baseMent的世界坐标偏移
+                cardPosition += baseMent.transform.position;
+                cards[i].transform.position = cardPosition;
+                
+            }
         }
 
         public int FindBestSymbol()
@@ -43,9 +92,9 @@ namespace UnoGame
             int[] marks = new int[4];
             Array.Clear(marks, 0, 4);
             int count = 0;
-            foreach (int card in cards)
+            foreach (var cardObj in cards)
             {
-                Card cd = CardBook.GetCard(card);
+                Card cd = CardBook.GetCard(cardObj.GetComponent<Chess>().id);
                 if (cd.symble!=5)
                 {
                     marks[cd.symble - 1]++;
@@ -69,23 +118,23 @@ namespace UnoGame
         public int CheckCard(int cid, ref int symbol,bool hasBonus)
         {
             int rt = -1;
+            Card comprCard = CardBook.GetCard(cid);
             if (hasBonus)
             {
                 for (int i = 0; i < cards.Count; i++)
                 {
-                    Card cdd = CardBook.GetCard(cid);
-                    Card cd = CardBook.GetCard(cards[i]);
-                    if ((cdd.point == 21 && cd.point == 24) || cd.point == cdd.point) //+2，+4
+                    Card pickCard = CardBook.GetCard(cards[i].GetComponent<Chess>().id);
+                    if ((comprCard.point == 21 && pickCard.point == 24) || pickCard.point == comprCard.point) //+2，+4
                     {
-                        if (cd.symble == 5)
+                        if (pickCard.symble == 5)
                         {
                             symbol = FindBestSymbol();
                         }
                         else
                         {
-                            symbol = cd.symble;
+                            symbol = pickCard.symble;
                         }
-                        rt = cd.id;
+                        rt = pickCard.id;
                         cards.RemoveAt(i);
                         return rt;
                     }
@@ -94,43 +143,42 @@ namespace UnoGame
 
             for (int i = 0; i < cards.Count; i++)
             {
-                Card cdd = CardBook.GetCard(cid);
-                Card cd = CardBook.GetCard(cards[i]);
+                Card pickCard = CardBook.GetCard(cards[i].GetComponent<Chess>().id);
                 if (cid==-1 || cards.Count == 1)
                 {
-                    if (cd.point <=10 && (cid==-1||cd.symble ==cdd.symble))
+                    if (pickCard.point <=10 && (cid==-1||pickCard.symble ==comprCard.symble))
                     {
-                        rt = cd.id;
-                        symbol = cd.symble;
+                        rt = pickCard.id;
+                        symbol = pickCard.symble;
                         cards.RemoveAt(i);
                         break;
                     }
                 }
-                else if (cdd.symble == 5 && cd.symble!=5)
+                else if (comprCard.symble == 5 && pickCard.symble!=5)
                 {
-                    if (cd.point==20||cd.point==21||cd.point==22)
+                    if (pickCard.point==20||pickCard.point==21||pickCard.point==22)
                     {
                         continue;
                     }
-                    if (cd.symble == symbol)
+                    if (pickCard.symble == symbol)
                     {
-                        rt = cd.id;
+                        rt = pickCard.id;
                         cards.RemoveAt(i);
                         break;
                     }
 
                 }
-                else if (cd.symble == 5 || cd.symble == symbol || cd.point == cdd.point)
+                else if (pickCard.symble == 5 || pickCard.symble == symbol || pickCard.point == comprCard.point)
                 {
-                    if (cd.symble==5)
+                    if (pickCard.symble==5)
                     {
                         symbol = FindBestSymbol();
                     }
                     else
                     {
-                        symbol = cd.symble;
+                        symbol = pickCard.symble;
                     }
-                    rt = cd.id;
+                    rt = pickCard.id;
                     cards.RemoveAt(i);
                     break;
                 }
@@ -146,7 +194,7 @@ namespace UnoGame
             }
 
             Card cdd = CardBook.GetCard(cid);
-            Card cd = CardBook.GetCard(cards[sel]);
+            Card cd = CardBook.GetCard(cards[sel].GetComponent<Chess>().id);
             if (cid == -1 || cards.Count == 1)
             {
                 if (cd.point <= 10 && (cid == -1 || cd.symble == cdd.symble))
@@ -174,9 +222,9 @@ namespace UnoGame
             {
                 if (cd.symble == 5)
                 {
-                    ColorForm cf=new ColorForm();
-                    cf.ShowDialog();
-                    symbol = cf.Color;
+                    // ColorForm cf=new ColorForm();
+                    // cf.ShowDialog();
+                    // symbol = cf.Color;
                 }
                 else
                 {
@@ -189,24 +237,5 @@ namespace UnoGame
             return -1;
         }
 
-        public bool CheckMouse(int mx, int my)
-        {
-            int newsel = -1;
-            for (int i = 0; i < cards.Count; i++)
-            {
-                int xoff = i != cards.Count - 1 ? 32 : 48;
-                if (mx>=x+32*i&&mx<x+32*i+xoff&&my>=y&&my<y+80)
-                {
-                    newsel = i;
-                    break;
-                } 
-            }
-            if (newsel != sel)
-            {
-                sel = newsel;
-                return true;
-            }
-            return false;
-        }
     }
 }

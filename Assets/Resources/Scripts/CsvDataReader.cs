@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Diagnostics;
+using UnityEngine;
 
 namespace UnoGame
 {
@@ -18,13 +20,14 @@ namespace UnoGame
 
         public CsvDataReader(Stream stream)
         {
-            sr = new StreamReader(stream, Encoding.Default);
+            sr = new StreamReader(stream, Encoding.UTF8);
             string headStr = sr.ReadLine();
             string[] headStrs = headStr.Split(',');
             heads = new Dictionary<string, int>();
             for (int i = 0; i < headStrs.Length; i++)
             {
                 heads.Add(headStrs[i], i);
+                UnityEngine.Debug.Log("CsvDataReader header" + headStrs[i]);
             }
         }
 

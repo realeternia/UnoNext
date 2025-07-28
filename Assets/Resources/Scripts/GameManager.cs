@@ -6,6 +6,7 @@ using UnoGame;
 
 public class GameManager : MonoBehaviour
 {    
+    public GameObject[] chessRegions;
     private List<int> cards;
     private Player[] players;        
     private bool isStart;
@@ -21,10 +22,10 @@ public class GameManager : MonoBehaviour
     {
         InitCards();
         players = new Player[4];
-        players[0] = new Player(0, "宝宝", 300, 550);
-        players[1] = new Player(1, "张三疯", 30, 300);
-        players[2] = new Player(2, "贝贝", 300, 30);
-        players[3] = new Player(3, "雀儿", 750, 300);
+        players[0] = new Player(0, "宝宝", true, chessRegions[0]);
+        players[1] = new Player(1, "张三疯", false, chessRegions[1]);
+        players[2] = new Player(2, "贝贝", true, chessRegions[2]);
+        players[3] = new Player(3, "雀儿", false, chessRegions[3]);
         for (int i = 0; i < 7; i++)
         {
             foreach (Player player in players)
@@ -37,16 +38,29 @@ public class GameManager : MonoBehaviour
         lastCard = new List<int>();
         symbol = 0;
         onTurn = false;
-        buttonGet.Visible = true;
-        button1.Hide();
-        buttonStart.Show();
+        // buttonGet.Visible = true;
+        // button1.Hide();
+        // buttonStart.Show();
+
+        StartCoroutine(DelayedUpdate());
     }
 
     // Update is called once per frame
     void Update()
     {
-        doWork();
-        Thread.Sleep(1000);
+
+    }
+
+    private IEnumerator DelayedUpdate()
+    {
+        while (true) // 模拟 Update 的循环
+        {
+            // 你的逻辑代码
+            doWork();
+
+            // 等待 1 秒（不阻塞主线程）
+            yield return new WaitForSeconds(1f);
+        }
     }
 
     private void InitCards()
@@ -65,13 +79,13 @@ public class GameManager : MonoBehaviour
         cards = RandomShuffle.Process(cards.ToArray());
     }
 
-    private void doWork(object o)
+    private void doWork()
     {
         foreach (Player player in players)
         {
             if (player.cards.Count==0)
             {
-                AddLog(string.Format("恭喜{0}获得胜利", player.Name), "Red");
+              //  AddLog(string.Format("恭喜{0}获得胜利", player.Name), "Red");
                 return;
             }
         }
@@ -91,7 +105,7 @@ public class GameManager : MonoBehaviour
                 }
                 else
                 {
-                    AddLog(string.Format("{0}吞下{1}张牌", players[id].Name, bonus), "Yellow");
+                 //   AddLog(string.Format("{0}吞下{1}张牌", players[id].Name, bonus), "Yellow");
                     for (int i = 0; i < bonus; i++)
                     {
                         players[id].AddCard(GetCard());

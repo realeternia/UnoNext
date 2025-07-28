@@ -38,7 +38,7 @@ namespace UnoGame
         {
             cards = new Dictionary<int, Card>();
             cardImages = new Dictionary<int, Texture>();
-            TextAsset csvAsset = Resources.Load<TextAsset>("Scripts/Card.csv");
+            TextAsset csvAsset = Resources.Load<TextAsset>("Scripts/cardCfg");
             using (MemoryStream stream = new MemoryStream(csvAsset.bytes))
             {
                 CsvDataReader dr = new CsvDataReader(stream);

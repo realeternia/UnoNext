@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 
 public class Chess : MonoBehaviour, IPointerClickHandler
 {
+    public int id;
     public string chessName = "9";
     public Renderer rend;
     // Start is called before the first frame update

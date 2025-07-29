@@ -66,6 +66,8 @@
     <Compile Include="Assets\Resources\Scripts\RandomShuffle.cs" />
     <Compile Include="Assets\Resources\Scripts\CardBook.cs" />
     <Compile Include="Assets\Resources\Scripts\Player.cs" />
+    <Compile Include="Assets\Resources\Scripts\ColorSelect.cs" />
+    <Compile Include="Assets\Resources\Scripts\PlayerInfo.cs" />
     <Compile Include="Assets\Resources\Scripts\Card.cs" />
   </ItemGroup>
   <ItemGroup>

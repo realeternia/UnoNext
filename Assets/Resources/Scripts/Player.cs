@@ -17,14 +17,9 @@ namespace UnoGame
         public bool isUpDown;
         public bool isAi;
 
-        public int ID
-        {
-            get { return id; }
-        }
-        public string PlayerName
-        {
-            get { return playerName; }
-        }
+        public bool isSelectColor;
+        public int ColorSelect =-1;
+
 
         private void Start()
         {
@@ -44,7 +39,6 @@ namespace UnoGame
         {
             // 从Prefab创建一个ChessObj对象
             GameObject chessObj = Instantiate(Resources.Load<GameObject>("Prefabs/ChessObj"));
-            float chessWidth = chessObj.GetComponent<Renderer>().bounds.size.x;
             chessObj.transform.SetParent(baseMent.transform, false);
 
             // 获取Chess组件
@@ -54,14 +48,17 @@ namespace UnoGame
                 // 设置Chess组件的属性
                 chess.id = tid;
                 chess.playerId = id;
-                // if(isAi)
-                //     chess.chessName = "0"; // ai牌不显示
-                // else
+                if(isAi)
+                    chess.chessName = "0"; // ai牌不显示
+                else
                     chess.chessName = CardBook.GetCard(tid).icon.ToString();
             }
 
             //保存到一个队列里
             cards.Add(chessObj);
+
+            if(GameManager.Instance != null)
+                GameManager.Instance.CreateChessToPlayer(this);
 
             if (!isUpDown)
                 chessObj.transform.Rotate(0, 90, 0);
@@ -226,7 +223,11 @@ namespace UnoGame
             {
                 if (checkCard.symble == 5)
                 {
-                    symbol = FindBestSymbol(); //ai情况
+                    if(isAi)
+                        symbol = FindBestSymbol(); //ai情况
+                    else
+                        symbol = ColorSelect;
+
                     // ColorForm cf=new ColorForm();
                     // cf.ShowDialog();
                     // symbol = cf.Color;

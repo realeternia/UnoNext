@@ -23,6 +23,22 @@ public class GameManager : MonoBehaviour
     public Image ImgClock;
     public Image SymbolPanel;
 
+    public GameObject SymbolSelect;
+
+    public GameObject DeckPlace;
+    
+    private struct ChessData
+    {
+        public Player targetPlayer;
+        public int chessType;
+        // 可以添加其他棋子相关属性
+    }
+
+    private Queue<ChessData> chessCreationQueue = new Queue<ChessData>();
+    private bool isProcessingQueue = false;
+    private const float CREATE_INTERVAL = 0.2f;
+    private const float MOVE_DURATION = 0.5f;
+
     public Sprite spriteC;
     public Sprite spriteCR;
     private string[] datas = {"", "Red", "Green", "Yellow", "Cyan"};
@@ -38,6 +54,7 @@ public class GameManager : MonoBehaviour
                 player.AddCard(GetCard());                    
             }
         }
+      //  players[0].AddCard(53);
         round = 10000;
         symbol = 0;
         onTurn = false;
@@ -149,16 +166,27 @@ public class GameManager : MonoBehaviour
 
     public void OnPlayerSelectCard(int checkId)
     {
-        if ((round % 4) == 0)
+        if ((round % 4) == 0 && !players[0].isSelectColor)
         {
             onTurn = true;
+            Card pickCard = CardBook.GetCard(checkId);
+            if(pickCard.symble == 5 && cardPlayedPos[0].id != -1 && players[0].cards.Count > 1 && !players[0].isSelectColor && players[0].ColorSelect == -1)
+            {
+                Debug.Log("OnPlayerSelectCard return checkId:"+checkId + " scolor:" + players[0].ColorSelect);
+                SymbolSelect.GetComponent<ColorSelect>().checkId = checkId;
+                SymbolSelect.SetActive(true);
+                players[0].isSelectColor = true;
+                return;
+            }
+
+            Debug.Log("OnPlayerSelectCard begin:"+checkId + " scolor:" + players[0].ColorSelect);
             var hasCard = players[0].CheckCardPlayer(cardPlayedPos[0].id, checkId, ref symbol);
             UpdateSymbolPanelColor();
             if (hasCard)
             {
                 if(bonus > 0)
                 {
-                    Card pickCard = CardBook.GetCard(checkId);
+                    
                     Card lastDeckCard = CardBook.GetCard(cardPlayedPos[0].id);
                     if (pickCard.point == lastDeckCard.point || (pickCard.point == 24 && lastDeckCard.point == 21))
                     {
@@ -187,6 +215,15 @@ public class GameManager : MonoBehaviour
 
             onTurn = false;
         }
+    }
+
+    public void OnSelectColor(int checkId, int color)
+    {
+        SymbolSelect.SetActive(false);
+        players[0].isSelectColor = false;
+        players[0].ColorSelect = color;
+        OnPlayerSelectCard(checkId);
+        players[0].ColorSelect = -1;
     }
     
     private void OnButtonAddClicked()
@@ -250,16 +287,16 @@ public class GameManager : MonoBehaviour
                 ImgClock.sprite = spriteC;
             PlaySound("Sounds/wind", 6);
         }
-        if (cd.point == 20)
+        else if (cd.point == 20)
         {
             jump = true;
+            PlaySound("Sounds/duang");
         }
-        
-        if (cd.point == 21)
+        else if (cd.point == 21)
         {
             bonus += 2;
         }
-        if (cd.point == 24)
+        else if (cd.point == 24)
         {
             bonus += 4;
         }
@@ -335,5 +372,71 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    public void CreateChessToPlayer(Player player, int chessType = 1)
+    {
+        if (player == null)
+        {
+            Debug.LogError("Target player is null");
+            return;
+        }
+
+        chessCreationQueue.Enqueue(new ChessData { targetPlayer = player, chessType = chessType });
+        if (!isProcessingQueue)
+        {
+            StartCoroutine(ProcessChessCreationQueue());
+        }
+    }
+
+    private IEnumerator ProcessChessCreationQueue()
+    {
+        isProcessingQueue = true;
+
+        while (chessCreationQueue.Count > 0)
+        {
+            var chessData = chessCreationQueue.Dequeue();
+            StartCoroutine(SpawnAndMoveChess(chessData.targetPlayer, chessData.chessType));
+            yield return new WaitForSeconds(CREATE_INTERVAL);
+        }
+
+        isProcessingQueue = false;
+    }
+
+    private IEnumerator SpawnAndMoveChess(Player targetPlayer, int chessType)
+    {
+        // 加载棋子预制体（假设存在Chess预制体）
+        GameObject chessPrefab = Resources.Load<GameObject>("Prefabs/ChessObj");
+        if (chessPrefab == null)
+        {
+            Debug.LogError("Chess prefab not found at Resources/Prefabs/Chess");
+            yield break;
+        }
+
+        // 在DeckPlace位置创建棋子
+        GameObject chessObject = Instantiate(chessPrefab, DeckPlace.transform.position, Quaternion.identity);
+        Chess chess = chessObject.GetComponent<Chess>();
+        chess.id = -1;
+
+        // 记录起始位置和目标位置
+        Vector3 startPosition = DeckPlace.transform.position;
+        Vector3 targetPosition = targetPlayer.baseMent.transform.position;
+
+        // 平滑移动棋子
+        float elapsedTime = 0;
+        while (elapsedTime < MOVE_DURATION)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsedTime / MOVE_DURATION);
+            // 使用缓动函数使移动更自然
+            t = Mathf.SmoothStep(0, 1, t);
+            chessObject.transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+            yield return null;
+        }
+
+        // 确保棋子精确到达目标位置
+        chessObject.transform.position = targetPosition;
+        
+        Destroy(chessObject);
     }
 }

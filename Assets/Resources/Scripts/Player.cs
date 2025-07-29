@@ -38,9 +38,9 @@ namespace UnoGame
                 // 设置Chess组件的属性
                 chess.id = tid;
                 chess.playerId = id;
-                if(isAi)
-                    chess.chessName = "0"; // ai牌不显示
-                else
+                // if(isAi)
+                //     chess.chessName = "0"; // ai牌不显示
+                // else
                     chess.chessName = CardBook.GetCard(tid).icon.ToString();
             }
 
@@ -65,8 +65,7 @@ namespace UnoGame
 
         private void UpdateCards()
         {
-            var chessWidth = 1;
-            var cardScale = 1f;
+            var chessWidth = 10;
             //将所有cards物件，水平平放在baseMent上，一排放置
             for (int i = 0; i < cards.Count; i++)
             {
@@ -78,21 +77,23 @@ namespace UnoGame
                 {
                     // Z轴排列
                     float baseMentDepth = baseMent.transform.localScale.z;
-                    float totalCardDepth = cards.Count * chessWidth * cardScale;
-                    float startZ = -baseMentDepth / 2 + chessWidth * cardScale / 2;
+                    float totalCardDepth = cards.Count * chessWidth;
+                    float startZ = -baseMentDepth / 2 + chessWidth / 2;
                     float spacing = cards.Count > 1 ? (baseMentDepth - totalCardDepth) / (cards.Count - 1) : 0;
-                    cardPosition = new Vector3(0, 0, startZ + i * (chessWidth * cardScale + spacing));
+                    if(spacing > 2)
+                        spacing = 2;
+                    cardPosition = new Vector3(0, 0, startZ + i * (chessWidth + spacing));
                 }
                 else
                 {
                     // X轴排列
                     float baseMentWidth = baseMent.transform.localScale.z;
-                    float totalCardWidth = cards.Count * chessWidth * cardScale;
-                    float startX = -baseMentWidth / 2 + chessWidth * cardScale / 2;
+                    float totalCardWidth = cards.Count * chessWidth;
+                    float startX = -baseMentWidth / 2 + chessWidth / 2;
                     float spacing = cards.Count > 1 ? (baseMentWidth - totalCardWidth) / (cards.Count - 1) : 0;
-                    cardPosition = new Vector3(startX + i * (chessWidth * cardScale + spacing), 0, 0);
-
-                    
+                    if(spacing > 2)
+                        spacing = 2;
+                    cardPosition = new Vector3(startX + i * (chessWidth + spacing), 0, 0);
                 }
                 // 添加baseMent的世界坐标偏移
                 cardPosition += baseMent.transform.position + new Vector3(0, i*0.1f, 0);
@@ -129,16 +130,16 @@ namespace UnoGame
             return rt;
         }
 
-        public int CheckCard(int cid, ref int symbol,bool hasBonus)
+        public int CheckCardAI(int deckCardId, ref int symbol,bool hasBonus)
         {
             int rt = -1;
-            Card comprCard = CardBook.GetCard(cid);
+            Card deckCard = CardBook.GetCard(deckCardId);
             if (hasBonus)
             {
                 for (int i = 0; i < cards.Count; i++)
                 {
                     Card pickCard = CardBook.GetCard(cards[i].GetComponent<Chess>().id);
-                    if ((comprCard.point == 21 && pickCard.point == 24) || pickCard.point == comprCard.point) //+2，+4
+                    if ((deckCard.point == 21 && pickCard.point == 24) || pickCard.point == deckCard.point) //+2，+4
                     {
                         if (pickCard.symble == 5)
                         {
@@ -149,7 +150,7 @@ namespace UnoGame
                             symbol = pickCard.symble;
                         }
                         rt = pickCard.id;
-                        cards.RemoveAt(i);
+                        RemoveCard(pickCard.id);
                         return rt;
                     }
                 }
@@ -157,90 +158,70 @@ namespace UnoGame
 
             for (int i = 0; i < cards.Count; i++)
             {
+                int sml = symbol;
                 Card pickCard = CardBook.GetCard(cards[i].GetComponent<Chess>().id);
-                if (cid==-1 || cards.Count == 1)
+                if (CheckCard(deckCardId, pickCard.id, ref sml))
                 {
-                    if (pickCard.point <=10 && (cid==-1||pickCard.symble ==comprCard.symble))
-                    {
-                        rt = pickCard.id;
-                        symbol = pickCard.symble;
-                        RemoveCard(pickCard.id);
-                        break;
-                    }
-                }
-                else if (comprCard.symble == 5 && pickCard.symble!=5)
-                {
-                    if (pickCard.point==20||pickCard.point==21||pickCard.point==22)
-                    {
-                        continue;
-                    }
-                    if (pickCard.symble == symbol)
-                    {
-                        rt = pickCard.id;
-                        RemoveCard(pickCard.id);
-                        break;
-                    }
-
-                }
-                else if (pickCard.symble == 5 || pickCard.symble == symbol || pickCard.point == comprCard.point)
-                {
-                    if (pickCard.symble==5)
-                    {
-                        symbol = FindBestSymbol();
-                    }
-                    else
-                    {
-                        symbol = pickCard.symble;
-                    }
                     rt = pickCard.id;
                     RemoveCard(pickCard.id);
+                    symbol = sml;
                     break;
                 }
             }
             return rt;
         }
 
-        public int CheckSelectCard(int cid, int selectCardId, ref int symbol)
+        public bool CheckCardPlayer(int cid, int checkCardId, ref int symbol)
         {
-            Card cdd = CardBook.GetCard(cid);
-            Card cd = CardBook.GetCard(selectCardId);
-            if (cid == -1 || cards.Count == 1)
+            int sml = symbol;
+            if (CheckCard(cid, checkCardId, ref sml))
             {
-                if (cd.point <= 10 && (cid == -1 || cd.symble == cdd.symble))
+                RemoveCard(checkCardId);
+                symbol = sml;
+                return true;
+            }
+            return false;
+        }
+
+        private bool CheckCard(int deckCardId, int checkCardId, ref int symbol)
+        {
+            Card deckCard = CardBook.GetCard(deckCardId);
+            Card checkCard = CardBook.GetCard(checkCardId);
+            if (deckCardId == -1 || cards.Count == 1)
+            {
+                if (checkCard.point <= 10 && (deckCardId == -1 || checkCard.symble == deckCard.symble))
                 {
-                    RemoveCard(selectCardId);
-                    symbol = cd.symble;
-                    return cd.id;
+                    symbol = checkCard.symble;
+                    return true;
                 }
             }
-            else if (cdd.symble == 5 && cd.symble != 5)
+            else if (deckCard.symble == 5 && checkCard.symble != 5)
             {
-                if (cd.point == 20 || cd.point == 21 || cd.point == 22)
+                if (checkCard.point == 20 || checkCard.point == 21 || checkCard.point == 22)
                 {
-                    return -1;
+                    return false;
                 }
-                if (cd.symble == symbol)
+                if (checkCard.symble == symbol)
                 {
-                    RemoveCard(selectCardId);
-                    return cd.id;
+                    return true;
                 }
             }
-            else if (cd.symble == 5 || cd.symble == symbol || cd.point == cdd.point)
+            else if (checkCard.symble == 5 || checkCard.symble == symbol || checkCard.point == deckCard.point)
             {
-                if (cd.symble == 5)
+                if (checkCard.symble == 5)
                 {
+                    symbol = FindBestSymbol(); //ai情况
                     // ColorForm cf=new ColorForm();
                     // cf.ShowDialog();
                     // symbol = cf.Color;
                 }
                 else
                 {
-                    symbol = cd.symble;
+                    symbol = checkCard.symble;
                 }
-               RemoveCard(selectCardId);
-                return cd.id;
+                return true;
             }
-            return -1;
+            return false;
         }
 
 

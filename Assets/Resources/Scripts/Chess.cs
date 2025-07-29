@@ -44,6 +44,5 @@ public class Chess : MonoBehaviour, IPointerClickHandler
             GameManager.Instance.OnPlayerSelectCard(id);
         }
         //rend.material.mainTexture = Resources.Load<Texture>("ChessPic/" + UnityEngine.Random.Range(1, 54).ToString());
-        Debug.Log("Scene Obj Click");
     }
 }

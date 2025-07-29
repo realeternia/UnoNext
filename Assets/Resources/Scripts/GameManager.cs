@@ -78,13 +78,6 @@ public class GameManager : MonoBehaviour
         deckCards = RandomShuffle.Process(deckCards.ToArray());
     }
 
-    private void OnButtonAddClicked()
-    {
-        foreach (Player player in players)
-        {
-            player.AddCard(GetCard());
-        }
-    }
 
     private void doWork()
     {
@@ -101,13 +94,14 @@ public class GameManager : MonoBehaviour
         int id = (round%4);
         if (id != 0)
         {
-            int cid = players[id].CheckCard(cardPlayedPos[0].id, ref symbol, bonus > 0);
-            Card cardPlayed = CardBook.GetCard(cid);
+            int checkId = players[id].CheckCardAI(cardPlayedPos[0].id, ref symbol, bonus > 0);
+            Debug.Log("ai CheckCardAI deckId:"+cardPlayedPos[0].id + " checkId:"+checkId);
+            Card cardPlayed = CardBook.GetCard(checkId);
             bool hasGetCard = false;
             if (bonus > 0)
             {
-                Card ccd = CardBook.GetCard(cardPlayedPos[0].id);
-                if (cardPlayed.point == ccd.point || (cardPlayed.point == 24 &&ccd.point==21))
+                Card lastDeckCard = CardBook.GetCard(cardPlayedPos[0].id);
+                if (cardPlayed.point == lastDeckCard.point || (cardPlayed.point == 24 &&lastDeckCard.point==21))
                 {
                 }
                 else
@@ -122,10 +116,10 @@ public class GameManager : MonoBehaviour
                 }
             }
 
-            round = !reverse ? (round + 1) : (round - 1);
-            if(cid>0)
+            AddRound();
+            if(checkId>0)
             {
-                AddLastCard(round % 4, cid);
+                AddLastCard(round % 4, checkId);
              //   AddLog(string.Format("{0}出了{1}", players[id].Name, cd.name),cd.point<=10?"White":"Lime");
             }
             else if (!hasGetCard)
@@ -142,34 +136,53 @@ public class GameManager : MonoBehaviour
         if ((round % 4) == 0)
         {
             onTurn = true;
-            int cid = players[0].CheckSelectCard(cardPlayedPos[0].id, checkId, ref symbol);
-            Card cd = CardBook.GetCard(cid);
-            if (cid>0&& bonus > 0)
+            var hasCard = players[0].CheckCardPlayer(cardPlayedPos[0].id, checkId, ref symbol);
+            if (hasCard)
             {
-                Card ccd = CardBook.GetCard(cid);
-                if (cd.point == ccd.point || (cd.point == 24 && ccd.point == 21))
+                if(bonus > 0)
                 {
+                    Card pickCard = CardBook.GetCard(checkId);
+                    Card lastDeckCard = CardBook.GetCard(cardPlayedPos[0].id);
+                    if (pickCard.point == lastDeckCard.point || (pickCard.point == 24 && lastDeckCard.point == 21))
+                    {
+                    }
+                    else
+                    {
+                    //  AddLog(string.Format("{0}吞下{1}张牌", players[0].Name, bonus), "Yellow");
+                        for (int i = 0; i < bonus; i++)
+                            players[0].AddCard(GetCard());
+                        bonus = 0;
+                    }
                 }
                 else
                 {
-                  //  AddLog(string.Format("{0}吞下{1}张牌", players[0].Name, bonus), "Yellow");
-                    for (int i = 0; i < bonus; i++)
-                    {
-                        players[0].AddCard(GetCard());
-                    }
-                    bonus = 0;
+                    AddLastCard(round % 4, checkId);
+                //   AddLog(string.Format("{0}出了{1}", players[0].Name, cd.name), cd.point <= 10 ? "White" : "Lime");
+                //  doubleBuffedPanel1.Invalidate();
                 }
+                AddRound();
             }
 
-            if (cid>0)
-            {
-                round = !reverse ? (round + 1) : (round - 1);
-                AddLastCard(round % 4, cid);
-             //   AddLog(string.Format("{0}出了{1}", players[0].Name, cd.name), cd.point <= 10 ? "White" : "Lime");
-              //  doubleBuffedPanel1.Invalidate();
-            }
             onTurn = false;
         }
+    }
+    
+    private void OnButtonAddClicked()
+    {
+        // 玩家摸牌
+        if ((round % 4) == 0)
+        {
+            onTurn = true;
+            players[0].AddCard(GetCard());
+            AddRound();
+            onTurn = false;
+        }
+    }
+
+    private void AddRound()
+    {
+        round = !reverse ? (round + 1) : (round - 1);
+        Debug.Log("round:"+round);
     }
 
 

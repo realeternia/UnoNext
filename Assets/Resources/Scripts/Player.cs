@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using UnoGame;
 using UnityEngine;
+using Unity.VisualScripting;
 
 namespace UnoGame
 {
@@ -12,6 +13,7 @@ namespace UnoGame
         public string playerName;
         public List<GameObject> cards = new List<GameObject>();
         public GameObject baseMent;
+        public PlayerInfo playerInfo;
         public bool isUpDown;
         public bool isAi;
 
@@ -22,6 +24,20 @@ namespace UnoGame
         public string PlayerName
         {
             get { return playerName; }
+        }
+
+        private void Start()
+        {
+            playerInfo.playerNameText.text = playerName;
+        }
+
+        public void BeginRound()
+        {
+            playerInfo.isOnTurn = true;
+        }
+        public void EndRound()
+        {
+            playerInfo.isOnTurn = false;
         }
 
         public void AddCard(int tid)

@@ -16,9 +16,16 @@ public class GameManager : MonoBehaviour
     private int symbol;
     private bool reverse;
     private int bonus;
+    private bool jump;
     private bool onTurn;
 
     public Button buttonAdd;
+    public Image ImgClock;
+    public Image SymbolPanel;
+
+    public Sprite spriteC;
+    public Sprite spriteCR;
+    private string[] datas = {"", "Red", "Green", "Yellow", "Cyan"};
 
     // Start is called before the first frame update
     void Start()
@@ -41,6 +48,7 @@ public class GameManager : MonoBehaviour
         buttonAdd.onClick.AddListener(OnButtonAddClicked);
         StartCoroutine(DelayedUpdate());
 
+        players[0].BeginRound();
         Instance = this;
     }
 
@@ -53,7 +61,8 @@ public class GameManager : MonoBehaviour
     private IEnumerator DelayedUpdate()
     {
         while (true) // 模拟 Update 的循环
-        {
+        {    
+            yield return new WaitForSeconds(2f);
             // 你的逻辑代码
             doWork();
 
@@ -96,6 +105,7 @@ public class GameManager : MonoBehaviour
         {
             int checkId = players[id].CheckCardAI(cardPlayedPos[0].id, ref symbol, bonus > 0);
             Debug.Log("ai CheckCardAI deckId:"+cardPlayedPos[0].id + " checkId:"+checkId);
+            UpdateSymbolPanelColor();
             Card cardPlayed = CardBook.GetCard(checkId);
             bool hasGetCard = false;
             if (bonus > 0)
@@ -116,17 +126,23 @@ public class GameManager : MonoBehaviour
                 }
             }
 
-            AddRound();
             if(checkId>0)
             {
-                AddLastCard(round % 4, checkId);
+                PlaySound("Sounds/pat");
+                AddLastCard(id, checkId);
              //   AddLog(string.Format("{0}出了{1}", players[id].Name, cd.name),cd.point<=10?"White":"Lime");
             }
             else if (!hasGetCard)
             {
+                PlaySound("Sounds/book");
                 players[id].AddCard(GetCard());
              //   AddLog(string.Format("{0}补牌", players[id].Name), "Gray");
             }
+
+            if(players[id].cards.Count == 1)
+                PlaySound(id == 0 ? "Sounds/uno" : "Sounds/uno2", 9);
+
+            AddRound();
         }
         onTurn = false;
     }
@@ -137,6 +153,7 @@ public class GameManager : MonoBehaviour
         {
             onTurn = true;
             var hasCard = players[0].CheckCardPlayer(cardPlayedPos[0].id, checkId, ref symbol);
+            UpdateSymbolPanelColor();
             if (hasCard)
             {
                 if(bonus > 0)
@@ -154,12 +171,17 @@ public class GameManager : MonoBehaviour
                         bonus = 0;
                     }
                 }
-                else
+
                 {
+                    PlaySound("Sounds/pat");
                     AddLastCard(round % 4, checkId);
                 //   AddLog(string.Format("{0}出了{1}", players[0].Name, cd.name), cd.point <= 10 ? "White" : "Lime");
                 //  doubleBuffedPanel1.Invalidate();
                 }
+
+                if(players[0].cards.Count == 1)
+                    PlaySound("Sounds/uno", 9);
+
                 AddRound();
             }
 
@@ -173,6 +195,13 @@ public class GameManager : MonoBehaviour
         if ((round % 4) == 0)
         {
             onTurn = true;
+            if (bonus > 0)
+            {
+                for (int i = 0; i < bonus; i++)
+                    players[0].AddCard(GetCard());
+                bonus = 0;
+            }
+            PlaySound("Sounds/book");
             players[0].AddCard(GetCard());
             AddRound();
             onTurn = false;
@@ -181,10 +210,17 @@ public class GameManager : MonoBehaviour
 
     private void AddRound()
     {
-        round = !reverse ? (round + 1) : (round - 1);
+        foreach (Player player in players)
+            player.EndRound();
+
+        int add = 1;
+        if(jump)
+            add = 2;
+        jump = false;
+        round = !reverse ? (round + add) : (round - add);
+        players[round % 4].BeginRound();
         Debug.Log("round:"+round);
     }
-
 
     private int GetCard()
     {
@@ -207,12 +243,16 @@ public class GameManager : MonoBehaviour
         Card cd = CardBook.GetCard(cid);
         if (cd.point == 22)
         {
-            round = reverse ? round + 2 : round - 2;
             reverse = !reverse;
+            if (reverse)
+                ImgClock.sprite = spriteCR;
+            else
+                ImgClock.sprite = spriteC;
+            PlaySound("Sounds/wind", 6);
         }
         if (cd.point == 20)
         {
-            round = reverse ? round - 1 : round + 1;
+            jump = true;
         }
         
         if (cd.point == 21)
@@ -229,5 +269,71 @@ public class GameManager : MonoBehaviour
     public void AddLog(string s)
     {
 
+    }
+
+    // 静态变量记录上次播放路径和 clip
+    string lastPath = "";
+    AudioClip lastClip = null;
+
+    private int lastSoundPriority = -1;
+    private float lastSoundTime = 0f;
+
+    public void PlaySound(string path, int prioty = 3)
+    {
+        float currentTime = Time.time;
+        // 如果当前优先级低于上一次且时间间隔小于1秒，则跳过播放
+        if (prioty < lastSoundPriority && currentTime - lastSoundTime < 1f)
+        {
+            return;
+        }
+
+        // 更新上次播放信息
+        lastSoundPriority = prioty;
+        lastSoundTime = currentTime;
+    
+        AudioSource audioSource = gameObject.GetComponent<AudioSource>();
+        if (lastPath != path)
+        {
+            lastPath = path;
+            lastClip = Resources.Load<AudioClip>(path);
+            if (lastClip != null)
+            {
+                audioSource.clip = lastClip;
+            }
+        }
+
+        if (audioSource.clip != null)
+        {
+            audioSource.Stop();
+            audioSource.Play();
+        }
+    }    
+    private void UpdateSymbolPanelColor()
+    {
+        if (symbol >= 0 && symbol < datas.Length)
+        {
+            string colorName = datas[symbol];
+            if (!string.IsNullOrEmpty(colorName))
+            {
+                switch (colorName.ToLower())
+                {
+                    case "red":
+                        SymbolPanel.color = Color.red;
+                        break;
+                    case "green":
+                        SymbolPanel.color = Color.green;
+                        break;
+                    case "yellow":
+                        SymbolPanel.color = Color.yellow;
+                        break;
+                    case "cyan":
+                        SymbolPanel.color = Color.cyan;
+                        break;
+                    default:
+                        // 未知颜色
+                        break;
+                }
+            }
+        }
     }
 }
